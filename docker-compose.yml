@@ -1,0 +1,27 @@
+version: '2'
+services:
+  citra:
+    build:
+      context: .
+      dockerfile: docker/citra.dockerfile
+    shm_size: 2G
+    environment:
+       OPENBOX_ARGS: '--startup "citra-qt ${TEST_FILE:?}"'
+       RESOLUTION: 1366x768
+    ports:
+      - "6080:80"
+      - "5900:5900"
+    working_dir: /tmp/citra/out
+    volumes:
+      - "./citra:/tmp/citra"
+      - "${TEST_FILE:?}:${TEST_FILE:?}:ro"
+
+  driver:
+    build:
+      context: .
+      dockerfile: docker/driver.dockerfile
+    volumes:
+      - "./driver:/tmp/driver"
+    working_dir: /tmp/driver/out
+    command: ["/usr/libexec/vncdo.sh", "/tmp/driver/main.vdo"]
+

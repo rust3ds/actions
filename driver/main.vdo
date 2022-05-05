@@ -1,0 +1,12 @@
+# Wait for citra to finish startup
+sleep 3
+# Grab focus of the citra screen
+# click 1
+
+# Main test logic
+capture start.png
+key ctrl-p
+capture screenshot.png
+type "/tmp/citra/out/screenshot0.png" key enter
+key n
+capture final.png
