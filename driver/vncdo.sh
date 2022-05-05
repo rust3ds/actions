@@ -5,4 +5,4 @@ while ! vncdo -s citra pause 0 &>/dev/null; do
     sleep 1
 done
 
-exec vncdo -s citra --nocursor --delay 500 "$@"
+exec vncdo -s citra --nocursor --delay 400 "$@"
