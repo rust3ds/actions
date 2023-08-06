@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  # actions-rust-lang/setup-rust-toolchain sets some default RUSTFLAGS, which we don't want to use
+  RUSTFLAGS: ""
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        toolchain:
+          - nightly-2023-06-01
+
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+
+      - uses: ./.github/actions/setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Check formatting
+        run: cargo fmt --all --verbose -- --check
+
+      - name: Run clippy
+        # We have to build the test crate here since it's not included in build-std by default
+        run: cargo 3ds clippy -Zbuild-std=std,test --color=always --verbose --all-targets
+
+  test:
+    strategy:
+      matrix:
+        toolchain:
+          # Oldest supported nightly
+          - nightly-2023-06-01
+          - nightly
+
+    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      - uses: ./.github/actions/setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Build lib tests
+        run: cargo 3ds test --no-run --lib
+
+      - name: Build integration tests
+        run: cargo 3ds test --no-run --test integration
+
+      - name: Build doc tests
+        # need build-std=test until https://github.com/rust3ds/cargo-3ds/pull/42
+        run: cargo 3ds test --doc -Zbuild-std=std,test
