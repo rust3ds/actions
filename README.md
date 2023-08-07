@@ -3,23 +3,14 @@
 
 A set of tools for running automated Rust tests against Citra (3DS emulator).
 
-## Usage
+## Components
 
-`./run.sh 3DSX_FILE`
+* `test-runner`: a Rust crate for writing tests for 3DS homebrew
+* `Dockerfile`: builds a container for running test executables with Citra.
+* GitHub Actions:
+  * `.github/actions/setup`: action for setting up the Rust 3DS toolchain in
+    workflows
+  * `.github/actions/citra`: action for running test executables with Citra in
+    workflows
 
-## Goals
-
-* Docker container for manually running tests against Citra
-* GitHub Action for running automated tests
-* Rust testing framework (custom runner) for use with the 3ds
-* (maybe) Acceptance testing framework or glue for one?
-
-## Workflow / Notes
-
-1. Build a test executable (type tbd)
-1. `citra-emu` container: bind-mount test executable and choose it
-1. `driver` container perform input / output as needed for test, via VNC
-
-    * possible extension: `3dslink -s` to get actual stdout/stderr (return code?)
-
-    * acceptance testing of images, hopefully via screenshot
+<!-- TODO: usage section for github actions -->

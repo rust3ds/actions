@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # actions-rust-lang/setup-rust-toolchain sets some default RUSTFLAGS, which we don't want to use
+  RUSTFLAGS: ""
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        toolchain:
+          - nightly-2023-06-01
+
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+
+      - uses: ./.github/actions/setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Check formatting
+        run: cargo fmt --all --verbose -- --check
+
+      - name: Run clippy
+        # We have to build the test crate here since it's not included in build-std by default
+        run: cargo 3ds clippy -Zbuild-std=std,test --color=always --verbose --all-targets
+
+  test:
+    strategy:
+      matrix:
+        toolchain:
+          # Oldest supported nightly
+          - nightly-2023-06-01
+          - nightly
+
+    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      - uses: ./.github/actions/setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Build lib tests
+        run: cargo 3ds test --no-run --lib
+
+      - name: Build integration tests
+        run: cargo 3ds test --no-run --test integration
+
+      - name: Build doc tests
+        run: cargo 3ds test --no-run --doc
+
+      - name: Run lib + integration tests
+        uses: ./.github/actions/citra
+        with:
+          executable:  ./target/armv6k-nintendo-3ds/debug/deps/*.elf
+
+      # TODO: run doc tests. We might be able to do something with e.g.
+      # cargo's "runner" configuration, but it seems we also need a test
+      # runtime and stuff for that to work.
+
+      - name: Upload citra logs and capture videos
+        uses: actions/upload-artifact@v3
+        if: success() || failure()
+        with:
+          name: citra-logs-${{ matrix.toolchain }}
+          path: |
+            target/armv6k-nintendo-3ds/debug/deps/*.txt
+            target/armv6k-nintendo-3ds/debug/deps/*.webm
