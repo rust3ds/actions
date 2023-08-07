@@ -1,5 +1,5 @@
-// Workaround for https://github.com/rust-lang/rust/issues/94348
-extern crate shim_3ds;
+#![feature(custom_test_frameworks)]
+#![test_runner(test_runner::run_gdb)]
 
 #[test]
 fn it_works() {
@@ -8,6 +8,6 @@ fn it_works() {
 
 #[test]
 #[should_panic]
-fn it_fails() {
+fn it_panics() {
     assert_eq!(2 + 2, 5);
 }

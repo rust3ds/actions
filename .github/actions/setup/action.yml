@@ -28,6 +28,8 @@ runs:
 
     - name: Set up Rust cache
       uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: rust3ds
 
     - name: Install build tools for host
       shell: bash

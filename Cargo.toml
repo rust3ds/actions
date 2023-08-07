@@ -12,4 +12,3 @@ socket = []
 ctru-rs = { git = "https://github.com/rust3ds/ctru-rs" }
 ctru-sys = { git = "https://github.com/rust3ds/ctru-rs" }
 libc = "0.2.147"
-shim-3ds = { git = "https://github.com/rust3ds/shim-3ds", version = "0.1.0" }

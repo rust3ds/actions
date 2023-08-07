@@ -8,16 +8,12 @@ COPY ./docker/download_citra.sh /usr/local/bin/download_citra
 RUN apt-get update -y && apt-get install -y jq
 RUN download_citra ${CITRA_CHANNEL} ${CITRA_RELEASE}
 
-RUN wget https://apt.devkitpro.org/install-devkitpro-pacman && \
-    chmod +x ./install-devkitpro-pacman && \
-    yes | /tmp/install-devkitpro-pacman
-RUN dkp-pacman -S --noconfirm \
-        devkitARM-gdb \
-        libctru
+FROM devkitpro/devkitarm:latest as devkitarm
 
 FROM ubuntu:latest
 
-RUN apt-get update -y && \
+RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    apt-get update -y && \
     apt-get install -y \
         libswscale5 \
         libsdl2-2.0-0 \
@@ -25,11 +21,11 @@ RUN apt-get update -y && \
         libavfilter7 \
         xvfb
 
-COPY --from=builder /opt/devkitpro /opt/devkitpro
+COPY --from=devkitarm /opt/devkitpro /opt/devkitpro
 ENV PATH=/opt/devkitpro/devkitARM/bin:${PATH}
 
 COPY --from=builder /tmp/citra.AppImage /usr/local/bin/citra
-COPY ./docker/sdl2-config.ini /root/.config/citra-emu/
+COPY ./docker/sdl2-config.ini /app/
 COPY ./docker/test-runner.gdb /app/
 COPY ./docker/entrypoint.sh /app/
 
