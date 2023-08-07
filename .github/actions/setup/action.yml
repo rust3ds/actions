@@ -26,13 +26,17 @@ runs:
         components: clippy, rustfmt, rust-src
         toolchain: ${{ inputs.toolchain }}
 
+    - name: Set up Rust cache
+      uses: Swatinem/rust-cache@v2
+
     - name: Install build tools for host
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y build-essential
 
     - name: Install cargo-3ds
       shell: bash
-      run: cargo install cargo-3ds
+      # TODO: replace with crates.io version once published
+      run: cargo install --git https://github.com/rust3ds/cargo-3ds --branch feature/verbose-flag
 
     - name: Set PATH to include devkitARM
       shell: bash

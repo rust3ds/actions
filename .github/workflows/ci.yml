@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 env:
@@ -65,3 +65,12 @@ jobs:
       - name: Build doc tests
         # need build-std=test until https://github.com/rust3ds/cargo-3ds/pull/42
         run: cargo 3ds test --doc -Zbuild-std=std,test
+
+      - name: Run lib + integration tests
+        uses: ./.github/actions/citra
+        with:
+          executable:  ./target/armv6k-nintendo-3ds/debug/deps/*.elf
+
+      # TODO: run doc tests. We might be able to do something with e.g.
+      # cargo's "runner" configuration, but it seems we also need a test
+      # runtime and stuff for that to work.
