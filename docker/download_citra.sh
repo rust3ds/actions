@@ -9,7 +9,7 @@ RELEASE_API="https://api.github.com/repos/citra-emu/citra-${CITRA_CHANNEL}/relea
 
 curl "${RELEASE_API}" |
     jq --raw-output '.assets[].browser_download_url' |
-    grep -E 'citra-linux-.*.tar.gz' |
+    grep -E 'citra-linux-.*[.]tar.gz' |
     xargs wget -O citra-linux.tar.gz
 
 tar --strip-components 1 -xvf citra-linux.tar.gz

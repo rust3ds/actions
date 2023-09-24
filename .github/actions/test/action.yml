@@ -7,27 +7,37 @@ description: >
 
 inputs:
   args:
-    description: >
-      Extra arguments to pass to `cargo 3ds test`
+    description: Extra arguments to pass to `cargo 3ds test`
     required: false
     default: ''
+
+  runner-image:
+    description: The name of the container image to build for running tests in
+    required: false
+    default: test-runner-3ds
 
 runs:
   using: composite
   steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build test-runner image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
-        tags: test-runner-3ds:latest
+        tags: ${{ inputs.runner-image }}:latest
         push: false
 
     - shell: bash
-      env:
-        # Set a custom runner for `cargo test` commands to use
-        CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER: |-
-          docker run --rm \
-            -v /tmp:/tmp \
-            -v ${{ github.workspace }}/target:/app/target \
-            -v ${{ github.workspace }}:${{ github.workspace }} \
-            test-runner-3ds:latest
-      run: cargo 3ds test ${{ inputs.args }}
+      # Set a custom runner for `cargo test` commands to use.
+      # Use ${GITHUB_WORKSPACE} due to
+      # https://github.com/actions/runner/issues/2058, which also means
+      # we have to export this instead of using the env: key
+      run: |
+        export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="docker run --rm
+            -v /tmp:/tmp
+            -v ${GITHUB_WORKSPACE}/target:/app/target
+            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}
+            ${{ inputs.runner-image }}:latest"
+        env
+        cargo 3ds -v test ${{ inputs.args }}
