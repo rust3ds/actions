@@ -27,8 +27,14 @@ runs:
       with:
         tags: ${{ inputs.runner-image }}:latest
         push: false
+        load: true
 
-    - shell: bash
+    - name: Ensure docker is installed in the container
+      shell: bash
+      run: apt-get update -y && apt-get install docker.io -y
+
+    - name: Run cargo 3ds test
+      shell: bash
       # Set a custom runner for `cargo test` commands to use.
       # Use ${GITHUB_WORKSPACE} due to
       # https://github.com/actions/runner/issues/2058, which also means
