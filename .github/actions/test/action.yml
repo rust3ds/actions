@@ -36,7 +36,7 @@ runs:
     - name: Run cargo 3ds test
       shell: bash
       # Set a custom runner for `cargo test` commands to use.
-      # Use ${GITHUB_WORKSPACE} due to
+      # Use ${GITHUB_WORKSPACE} as the container path due to
       # https://github.com/actions/runner/issues/2058, which also means
       # we have to export this instead of using the env: key
       run: |
@@ -44,7 +44,7 @@ runs:
             docker run --rm
                 -v /tmp:/tmp
                 -v ${{ github.workspace }}/target:/app/target
-                -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}
+                -v ${{ github.workspace }}:${GITHUB_WORKSPACE}
                 ${{ inputs.runner-image }}:latest"
         env
         cargo 3ds -v test ${{ inputs.args }}
