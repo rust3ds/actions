@@ -1,8 +1,9 @@
+use std::process::Termination;
+
 use ctru::prelude::*;
 use ctru::services::gfx::{Flush, Swap};
 
 use super::TestRunner;
-use crate::TestResult;
 
 pub struct ConsoleRunner {
     gfx: Gfx,
@@ -29,11 +30,10 @@ impl TestRunner for ConsoleRunner {
         Console::new(self.gfx.top_screen.borrow_mut())
     }
 
-    fn cleanup<T: TestResult>(mut self, result: T) -> T {
-        // We don't actually care about the test result, either way we'll stop
-        // and show the results to the user
+    fn cleanup<T: Termination>(mut self, result: T) -> T {
+        // We don't actually care about the output of the test result, either
+        // way we'll stop and show the results to the user.
 
-        // Wait to make sure the user can actually see the results before we exit
         println!("Press START to exit.");
 
         while self.apt.main_loop() {

@@ -8,11 +8,7 @@ ARG CITRA_CHANNEL=nightly
 ARG CITRA_RELEASE=1995
 RUN download_citra ${CITRA_CHANNEL} ${CITRA_RELEASE}
 
-<<<<<<< Updated upstream:run-tests/Dockerfile
 FROM devkitpro/devkitarm:latest as devkitarm
-=======
-FROM devkitpro/devkitarm as devkitarm
->>>>>>> Stashed changes:Dockerfile
 
 # For some reason, citra isn't always happy when you try to run it for the first time,
 # so we build a simple dummy program to force it to create its directory structure

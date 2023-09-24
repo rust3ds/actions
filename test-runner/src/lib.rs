@@ -15,9 +15,7 @@ mod console;
 mod gdb;
 mod socket;
 
-use std::any::Any;
-use std::error::Error;
-use std::fmt::Display;
+use std::process::{ExitCode, Termination};
 
 pub use console::ConsoleRunner;
 pub use gdb::GdbRunner;
@@ -126,17 +124,6 @@ macro_rules! doctest {
     };
 }
 
-#[derive(Debug)]
-struct TestsFailed;
-
-impl Display for TestsFailed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "some tests failed!")
-    }
-}
-
-impl Error for TestsFailed {}
-
 fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
     std::env::set_var("RUST_BACKTRACE", "1");
 
@@ -162,7 +149,13 @@ fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
 
     drop(ctx);
 
-    let _ = runner.cleanup(result);
+    let reportable_result = match result {
+        Ok(true) => Ok(()),
+        // Try to match stdlib console test runner behavior as best we can
+        _ => Err(ExitCode::from(101)),
+    };
+
+    let _ = runner.cleanup(reportable_result);
 }
 
 /// Adapted from [`test::make_owned_test`].
@@ -189,9 +182,6 @@ mod private {
     impl Sealed for super::ConsoleRunner {}
     impl Sealed for super::GdbRunner {}
     impl Sealed for super::SocketRunner {}
-
-    impl Sealed for () {}
-    impl<T, E> Sealed for Result<T, E> {}
 }
 
 /// A helper trait to make the behavior of test runners consistent.
@@ -209,35 +199,10 @@ pub trait TestRunner: private::Sealed + Sized + Default {
 
     /// Handle the results of the test and perform any necessary cleanup.
     /// The [`Context`](Self::Context) will be dropped just before this is called.
-    fn cleanup<T: TestResult>(self, test_result: T) -> T {
+    ///
+    /// This returns `T` so that the result can be used in doctests.
+    fn cleanup<T: Termination>(self, test_result: T) -> T {
         test_result
-    }
-}
-
-// A helper trait to determine whether tests succeeded. This trait is implemented
-// for
-pub trait TestResult: private::Sealed {
-    fn succeeded(&self) -> bool;
-}
-
-impl TestResult for () {
-    fn succeeded(&self) -> bool {
-        true
-    }
-}
-
-impl<T: Any, E> TestResult for Result<T, E> {
-    fn succeeded(&self) -> bool {
-        // This is sort of a hack workaround for lack of specialized trait impls.
-        // Basically, check if T is a boolean and use it if so. Otherwise default
-        // to mapping Ok to success and Err to failure.
-        match self
-            .as_ref()
-            .map(|val| (val as &dyn Any).downcast_ref::<bool>())
-        {
-            Ok(Some(&result)) => result,
-            other => other.is_ok(),
-        }
     }
 }
 
