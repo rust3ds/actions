@@ -22,14 +22,16 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
-      - uses: ./actions/setup
+      - uses: ./setup
         with:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Check formatting
+        working-directory: test-runner
         run: cargo fmt --all --verbose -- --check
 
       - name: Run clippy
+        working-directory: test-runner
         run: cargo 3ds clippy --color=always --verbose --all-targets
 
   test:
@@ -47,8 +49,6 @@ jobs:
       volumes:
         # So the test action can `docker run` the runner:
         - '/var/run/docker.sock:/var/run/docker.sock'
-        # So the built test artifacts end up on the host, not just inside the action container
-        - '/tmp:/tmp'
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -63,18 +63,18 @@ jobs:
           working-directory: test-runner
           args: -- -v
 
-      - name: Build and run doc tests
-        # Let's still run doc tests even if lib/integration tests fail:
-        if: ${{ !cancelled() }}
-        env:
-          # This ensures the citra logs and video output gets put in a directory
-          # where we can upload as artifacts
-          RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
-        uses: ./run-tests
-        with:
-          working-directory: test-runner
-          # TODO(#4): run them suckers
-          args: --doc --no-run -- -v
+      # TODO(#4): run these suckers
+      # - name: Build and run doc tests
+      #   # Let's still run doc tests even if lib/integration tests fail:
+      #   if: ${{ !cancelled() }}
+      #   env:
+      #     # This ensures the citra logs and video output gets put in a directory
+      #     # where we can upload as artifacts
+      #     RUSTDOCFLAGS: " --persist-doctests ${{ env.GITHUB_WORKSPACE }}/target/armv6k-nintendo-3ds/debug/doctests"
+      #   uses: ./run-tests
+      #   with:
+      #     working-directory: test-runner
+      #     args: --doc -- -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3

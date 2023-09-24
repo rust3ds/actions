@@ -30,7 +30,7 @@ runs:
     - name: Build test-runner image
       uses: docker/build-push-action@v4
       with:
-        contest: ${{ github.action_path }}
+        context: ${{ github.action_path }}
         tags: ${{ inputs.runner-image }}:latest
         push: false
         load: true
@@ -49,9 +49,13 @@ runs:
         cd ${{ inputs.working-directory }}
         export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
             docker run --rm
-                -v /tmp:/tmp
+                -v ${{ runner.temp }}:${{ runner.temp }}
                 -v ${{ github.workspace }}/target:/app/target
-                -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}
+                -v ${{ github.workspace }}:${GITHUB_WORKSPACE}
                 ${{ inputs.runner-image }}:latest"
         env
         cargo 3ds -v test ${{ inputs.args }}
+      env:
+        # Ensure that doctests get built into a path which is mounted on the host
+        # as well as in this container (via the bind mount in the RUNNER command)
+        TMPDIR: ${{ runner.temp }}

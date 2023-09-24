@@ -17,13 +17,13 @@ runs:
       with:
         components: clippy, rustfmt, rust-src
         toolchain: ${{ inputs.toolchain }}
-        cache: "false" # We set up our own cache manually in the next step
+        cache: false # We set up our own cache manually in the next step
         rustflags: ""
 
     - name: Set up Rust cache
       uses: Swatinem/rust-cache@v2
       with:
-        cache-on-failure: "true"
+        cache-on-failure: true
 
     - name: Install build tools for host
       shell: bash
