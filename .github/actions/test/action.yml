@@ -1,0 +1,33 @@
+name: Cargo 3DS Test
+description: >
+  Run `cargo 3ds test` executables using Citra. Note that to use this action,
+  you must mount `/var/run/docker.sock:/var/run/docker.sock` and `/tmp:/tmp` into
+  the container so that the runner image can be built and doctest artifacts can
+  be found, respectively.
+
+inputs:
+  args:
+    description: >
+      Extra arguments to pass to `cargo 3ds test`
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Build test-runner image
+      uses: docker/build-push-action@v2
+      with:
+        tags: test-runner-3ds:latest
+        push: false
+
+    - shell: bash
+      env:
+        # Set a custom runner for `cargo test` commands to use
+        CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER: |-
+          docker run --rm \
+            -v /tmp:/tmp \
+            -v ${{ github.workspace }}/target:/app/target \
+            -v ${{ github.workspace }}:${{ github.workspace }} \
+            test-runner-3ds:latest
+      run: cargo 3ds test ${{ inputs.args }}

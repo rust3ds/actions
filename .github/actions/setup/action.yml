@@ -10,14 +10,6 @@ inputs:
 runs:
   using: composite
   steps:
-    # https://github.com/nektos/act/issues/917#issuecomment-1074421318
-    - if: ${{ env.ACT }}
-      shell: bash
-      name: Hack container for local development
-      run: |
-          curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-
     - name: Setup default Rust toolchain
       # Use this helper action so we get matcher support
       # https://github.com/actions-rust-lang/setup-rust-toolchain/pull/15
@@ -25,6 +17,7 @@ runs:
       with:
         components: clippy, rustfmt, rust-src
         toolchain: ${{ inputs.toolchain }}
+        rustflags: ""
 
     - name: Set up Rust cache
       uses: Swatinem/rust-cache@v2
@@ -38,7 +31,7 @@ runs:
     - name: Install cargo-3ds
       shell: bash
       # TODO: replace with crates.io version once published
-      run: cargo install --git https://github.com/rust3ds/cargo-3ds --branch feature/verbose-flag
+      run: cargo install --locked --git https://github.com/rust3ds/cargo-3ds
 
     - name: Set PATH to include devkitARM
       shell: bash
