@@ -1,6 +1,7 @@
 use ctru::error::ResultCode;
 
 use super::TestRunner;
+use crate::TestResult;
 
 #[derive(Default)]
 pub struct GdbRunner;
@@ -27,22 +28,10 @@ impl TestRunner for GdbRunner {
         .expect("failed to redirect I/O streams to GDB");
     }
 
-    fn cleanup(self, test_result: std::io::Result<bool>) {
+    fn cleanup<T: TestResult>(self, test_result: T) -> T {
         // GDB actually has the opportunity to inspect the exit code,
         // unlike other runners, so let's follow the default behavior of the
         // stdlib test runner.
-        match test_result {
-            Ok(success) => {
-                if success {
-                    std::process::exit(0);
-                } else {
-                    std::process::exit(101);
-                }
-            }
-            Err(err) => {
-                eprintln!("Error: {err}");
-                std::process::exit(101);
-            }
-        }
+        std::process::exit(if test_result.succeeded() { 0 } else { 101 })
     }
 }

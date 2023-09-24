@@ -1,9 +1,9 @@
 name: Cargo 3DS Test
 description: >
   Run `cargo 3ds test` executables using Citra. Note that to use this action,
-  you must mount `/var/run/docker.sock:/var/run/docker.sock` and `/tmp:/tmp` into
-  the container so that the runner image can be built and doctest artifacts can
-  be found, respectively.
+  you must use a container image of `devkitpro/devkitarm` and mount
+  `/var/run/docker.sock:/var/run/docker.sock` into the container so that the
+  runner image can be built by the action.
 
 inputs:
   args:
@@ -34,6 +34,8 @@ runs:
         tags: ${{ inputs.runner-image }}:latest
         push: false
         load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
     - name: Ensure docker is installed in the container
       shell: bash

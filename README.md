@@ -37,8 +37,6 @@ jobs:
       volumes:
         # This is required so the test action can `docker run` the runner:
         - '/var/run/docker.sock:/var/run/docker.sock'
-        # This is required so doctest artifacts are accessible to the action:
-        - '/tmp:/tmp'
 
     steps:
       - name: Checkout branch

@@ -2,6 +2,7 @@ use ctru::prelude::*;
 use ctru::services::gfx::{Flush, Swap};
 
 use super::TestRunner;
+use crate::TestResult;
 
 pub struct ConsoleRunner {
     gfx: Gfx,
@@ -28,7 +29,7 @@ impl TestRunner for ConsoleRunner {
         Console::new(self.gfx.top_screen.borrow_mut())
     }
 
-    fn cleanup(mut self, _test_result: std::io::Result<bool>) {
+    fn cleanup<T: TestResult>(mut self, result: T) -> T {
         // We don't actually care about the test result, either way we'll stop
         // and show the results to the user
 
@@ -47,5 +48,7 @@ impl TestRunner for ConsoleRunner {
                 break;
             }
         }
+
+        result
     }
 }
