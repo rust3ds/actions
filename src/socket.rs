@@ -22,6 +22,4 @@ impl TestRunner for SocketRunner {
             .redirect_to_3dslink(true, true)
             .expect("failed to redirect to socket");
     }
-
-    fn cleanup(self, _test_result: std::io::Result<bool>) {}
 }

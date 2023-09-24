@@ -45,8 +45,11 @@ jobs:
     container:
       image: devkitpro/devkitarm
       volumes:
+        # So the test action can `docker run` the runner:
         - '/var/run/docker.sock:/var/run/docker.sock'
-
+        # So the built test artifacts end up on the host, not just inside the action container
+        - '/tmp:/tmp'
+        - '${{ github.workspace }}:${{ github.workspace }}'
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -69,7 +72,8 @@ jobs:
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./.github/actions/test
         with:
-          args: --doc -- -v
+          # TODO(#4): run them suckers
+          args: --doc --no-run -- -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3

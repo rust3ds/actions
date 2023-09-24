@@ -6,6 +6,7 @@
 
 #![feature(test)]
 #![feature(custom_test_frameworks)]
+#![feature(exitcode_exit_method)]
 #![test_runner(run_gdb)]
 
 extern crate test;
@@ -14,10 +15,13 @@ mod console;
 mod gdb;
 mod socket;
 
-use console::ConsoleRunner;
-use gdb::GdbRunner;
-use socket::SocketRunner;
+use std::any::Any;
+use std::error::Error;
+use std::fmt::Display;
 
+pub use console::ConsoleRunner;
+pub use gdb::GdbRunner;
+pub use socket::SocketRunner;
 use test::{ColorConfig, OutputFormat, TestDescAndFn, TestFn, TestOpts};
 
 /// Show test output in GDB, using the [File I/O Protocol] (called HIO in some 3DS
@@ -25,7 +29,7 @@ use test::{ColorConfig, OutputFormat, TestDescAndFn, TestFn, TestOpts};
 ///
 /// [File I/O Protocol]: https://sourceware.org/gdb/onlinedocs/gdb/File_002dI_002fO-Overview.html#File_002dI_002fO-Overview
 pub fn run_gdb(tests: &[&TestDescAndFn]) {
-    run::<GdbRunner>(tests)
+    run::<GdbRunner>(tests);
 }
 
 /// Run tests using the `ctru` [`Console`] (print results to the 3DS screen).
@@ -33,7 +37,7 @@ pub fn run_gdb(tests: &[&TestDescAndFn]) {
 ///
 /// [`Console`]: ctru::console::Console
 pub fn run_console(tests: &[&TestDescAndFn]) {
-    run::<ConsoleRunner>(tests)
+    run::<ConsoleRunner>(tests);
 }
 
 /// Show test output via a network socket to `3dslink`. This runner is only useful
@@ -43,8 +47,95 @@ pub fn run_console(tests: &[&TestDescAndFn]) {
 ///
 /// [`Soc::redirect_to_3dslink`]: ctru::services::soc::Soc::redirect_to_3dslink
 pub fn run_socket(tests: &[&TestDescAndFn]) {
-    run::<SocketRunner>(tests)
+    run::<SocketRunner>(tests);
 }
+
+/// Helper macro for writing doctests using this runner. Wrap this macro around
+/// your normal doctest to enable running it with the test runners in this crate.
+///
+/// You may optionally specify a runner before the test body, and may use any of
+/// the various [`fn main()`](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#using--in-doc-tests)
+/// signatures allowed by documentation tests.
+///
+/// # Examples
+///
+/// ## Custom runner
+///
+/// ```no_run
+/// test_runner::doctest! { SocketRunner,
+///     assert_eq!(2 + 2, 4);
+/// }
+/// ```
+///
+/// ## `should_panic`
+///
+/// ```should_panic
+/// test_runner::doctest! {
+///     assert_eq!(2 + 2, 5);
+/// }
+/// ```
+///
+/// ## Custom `fn main`
+///
+/// ```
+/// test_runner::doctest! {
+///     fn main() {
+///         assert_eq!(2 + 2, 4);
+///     }
+/// }
+/// ```
+///
+/// ```
+/// test_runner::doctest! {
+///     fn main() -> Result<(), Box<dyn std::error::Error>> {
+///         assert_eq!(2 + 2, 4);
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// ## Implicit return type
+///
+/// Note that for the rustdoc preprocessor to understand the return type, the
+/// `Ok(())` expression must be written _outside_ the `doctest!` invocation.
+///
+/// ```
+/// test_runner::doctest! {
+///     assert_eq!(2 + 2, 4);
+/// }
+/// Ok::<(), std::io::Error>(())
+/// ```
+#[macro_export]
+macro_rules! doctest {
+    ($runner:ident, fn main() $(-> $ret:ty)? { $($body:tt)* } ) => {
+        fn main() $(-> $ret)? {
+            $crate::doctest!{ $runner, $($body)* }
+        }
+    };
+    ($runner:ident, $($body:tt)*) => {
+        use $crate::TestRunner as _;
+        let mut _runner = $crate::$runner::default();
+        _runner.setup();
+        let _result = { $($body)* };
+        _runner.cleanup(_result)
+    };
+    ($($body:tt)*) => {
+        $crate::doctest!{ GdbRunner,
+            $($body)*
+        }
+    };
+}
+
+#[derive(Debug)]
+struct TestsFailed;
+
+impl Display for TestsFailed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "some tests failed!")
+    }
+}
+
+impl Error for TestsFailed {}
 
 fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -71,7 +162,7 @@ fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
 
     drop(ctx);
 
-    runner.cleanup(result);
+    let _ = runner.cleanup(result);
 }
 
 /// Adapted from [`test::make_owned_test`].
@@ -92,8 +183,19 @@ fn make_owned_test(test: &TestDescAndFn) -> TestDescAndFn {
     }
 }
 
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for super::ConsoleRunner {}
+    impl Sealed for super::GdbRunner {}
+    impl Sealed for super::SocketRunner {}
+
+    impl Sealed for () {}
+    impl<T, E> Sealed for Result<T, E> {}
+}
+
 /// A helper trait to make the behavior of test runners consistent.
-trait TestRunner: Sized + Default {
+pub trait TestRunner: private::Sealed + Sized + Default {
     /// Any context the test runner needs to remain alive for the duration of
     /// the test. This can be used for things that need to borrow the test runner
     /// itself.
@@ -107,7 +209,36 @@ trait TestRunner: Sized + Default {
 
     /// Handle the results of the test and perform any necessary cleanup.
     /// The [`Context`](Self::Context) will be dropped just before this is called.
-    fn cleanup(self, test_result: std::io::Result<bool>);
+    fn cleanup<T: TestResult>(self, test_result: T) -> T {
+        test_result
+    }
+}
+
+// A helper trait to determine whether tests succeeded. This trait is implemented
+// for
+pub trait TestResult: private::Sealed {
+    fn succeeded(&self) -> bool;
+}
+
+impl TestResult for () {
+    fn succeeded(&self) -> bool {
+        true
+    }
+}
+
+impl<T: Any, E> TestResult for Result<T, E> {
+    fn succeeded(&self) -> bool {
+        // This is sort of a hack workaround for lack of specialized trait impls.
+        // Basically, check if T is a boolean and use it if so. Otherwise default
+        // to mapping Ok to success and Err to failure.
+        match self
+            .as_ref()
+            .map(|val| (val as &dyn Any).downcast_ref::<bool>())
+        {
+            Ok(Some(&result)) => result,
+            other => other.is_ok(),
+        }
+    }
 }
 
 /// This module has stubs needed to link the test library, but they do nothing
@@ -132,14 +263,6 @@ mod link_fix {
     }
 }
 
-/// Verify that doctests work as expected
-/// ```
-/// assert_eq!(2 + 2, 4);
-/// ```
-///
-/// ```should_panic
-/// assert_eq!(2 + 2, 5);
-/// ```
 #[cfg(doctest)]
 struct Dummy;
 
