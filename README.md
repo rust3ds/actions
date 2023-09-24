@@ -13,4 +13,6 @@ A set of tools for running automated Rust tests against Citra (3DS emulator).
   * `.github/actions/citra`: action for running test executables with Citra in
     workflows
 
-<!-- TODO: usage section for github actions -->
+## Usage
+
+<!-- TODO -->

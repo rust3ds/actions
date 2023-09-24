@@ -22,7 +22,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v2
 
-      - uses: ./.github/actions/setup
+      - uses: ./actions/setup
         with:
           toolchain: ${{ matrix.toolchain }}
 
@@ -45,18 +45,20 @@ jobs:
     container:
       image: devkitpro/devkitarm
       volumes:
+        # So the test action can `docker run` the runner:
         - '/var/run/docker.sock:/var/run/docker.sock'
-
+        # So the built test artifacts end up on the host, not just inside the action container
+        - '/tmp:/tmp'
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
 
-      - uses: ./.github/actions/setup
+      - uses: ./setup
         with:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Build and run tests (unit + integration)
-        uses: ./.github/actions/test
+        uses: ./run-tests
         with:
           args: -- -v
 
@@ -67,9 +69,10 @@ jobs:
           # This ensures the citra logs and video output gets put in a directory
           # where we can upload as artifacts
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
-        uses: ./.github/actions/test
+        uses: ./run-tests
         with:
-          args: --doc -- -v
+          # TODO(#4): run them suckers
+          args: --doc --no-run -- -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3

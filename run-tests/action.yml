@@ -40,10 +40,11 @@ runs:
       # https://github.com/actions/runner/issues/2058, which also means
       # we have to export this instead of using the env: key
       run: |
-        export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="docker run --rm
-            -v /tmp:/tmp
-            -v ${GITHUB_WORKSPACE}/target:/app/target
-            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}
-            ${{ inputs.runner-image }}:latest"
+        export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
+            docker run --rm
+                -v /tmp:/tmp
+                -v ${{ github.workspace }}/target:/app/target
+                -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}
+                ${{ inputs.runner-image }}:latest"
         env
         cargo 3ds -v test ${{ inputs.args }}
