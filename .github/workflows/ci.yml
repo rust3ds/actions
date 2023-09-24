@@ -67,9 +67,9 @@ jobs:
         # Still run doc tests even if lib/integration tests fail:
         if: ${{ !cancelled() }}
         env:
-          # This ensures the citra logs and video output get put in a directory where the
-          # artifact upload can find them (instead of being removed from the tmpdir)
-          RUSTDOCFLAGS: " --persist-doctests ${{ env.GITHUB_WORKSPACE }}/target/armv6k-nintendo-3ds/debug/doctests"
+          # This ensures the citra logs and video output get persisted to a
+          # directory where the artifact upload can find them.
+          RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
         with:
           working-directory: test-runner
@@ -82,5 +82,5 @@ jobs:
         with:
           name: citra-logs-${{ matrix.toolchain }}
           path: |
-            target/armv6k-nintendo-3ds/debug/**/*.txt
-            target/armv6k-nintendo-3ds/debug/**/*.webm
+            test-runner/target/armv6k-nintendo-3ds/debug/**/*.txt
+            test-runner/target/armv6k-nintendo-3ds/debug/**/*.webm

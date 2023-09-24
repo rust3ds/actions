@@ -44,20 +44,24 @@ runs:
     - name: Run cargo 3ds test
       shell: bash
       # Set a custom runner for `cargo test` commands to use.
-      # Use ${GITHUB_WORKSPACE} due to
+      # Use ${PWD} and ${RUNNER_TEMP} due to
       # https://github.com/actions/runner/issues/2058, which also means
-      # we have to export this instead of using the env: key
+      # we have to export this in `run` instead of using the `env` key
       run: |
         cd ${{ inputs.working-directory }}
+
+        # Hopefully this still works if the input is an absolute path:
+        mounted_pwd="${{ github.workspace }}/${{ inputs.working-directory }}"
+
         export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
             docker run --rm
-                -v ${{ runner.temp }}:${{ runner.temp }}
-                -v ${{ github.workspace }}/target:/app/target
                 -v ${{ github.workspace }}:${GITHUB_WORKSPACE}
+                -v ${mounted_pwd}/target:/app/target
+                -v ${{ runner.temp }}:${RUNNER_TEMP}
                 ${{ inputs.runner-image }}:latest"
         env
         cargo 3ds -v test ${{ inputs.args }}
       env:
-        # Ensure that doctests get built into a path which is mounted on the host
-        # as well as in this container (via the bind mount in the RUNNER command)
-        TMPDIR: ${{ runner.temp }}
+        # Make sure doctests are built into the shared tempdir instead of the
+        # container's /tmp which will be immediately removed
+        TMPDIR: ${{ env.RUNNER_TEMP }}
