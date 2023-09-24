@@ -61,6 +61,16 @@ pub fn run_socket(tests: &[&TestDescAndFn]) {
 ///
 /// # Examples
 ///
+/// ## Basic usage
+///
+#[cfg_attr(not(doctest), doc = "````")]
+/// ```
+/// test_runner::doctest! {
+///     assert_eq!(2 + 2, 4);
+/// }
+/// ```
+#[cfg_attr(not(doctest), doc = "````")]
+///
 /// ## Custom runner
 ///
 #[cfg_attr(not(doctest), doc = "````")]
