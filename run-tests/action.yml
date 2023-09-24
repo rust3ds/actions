@@ -16,6 +16,11 @@ inputs:
     required: false
     default: test-runner-3ds
 
+  working-directory:
+    description: Change to this directory before running tests. Defaults to $GITHUB_WORKSPACE
+    required: false
+    default: ${GITHUB_WORKSPACE}
+
 runs:
   using: composite
   steps:
@@ -25,6 +30,7 @@ runs:
     - name: Build test-runner image
       uses: docker/build-push-action@v4
       with:
+        contest: ${{ github.action_path }}
         tags: ${{ inputs.runner-image }}:latest
         push: false
         load: true
@@ -40,6 +46,7 @@ runs:
       # https://github.com/actions/runner/issues/2058, which also means
       # we have to export this instead of using the env: key
       run: |
+        cd ${{ inputs.working-directory }}
         export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
             docker run --rm
                 -v /tmp:/tmp

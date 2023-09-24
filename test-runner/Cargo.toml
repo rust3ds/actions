@@ -12,3 +12,10 @@ socket = []
 ctru-rs = { git = "https://github.com/rust3ds/ctru-rs" }
 ctru-sys = { git = "https://github.com/rust3ds/ctru-rs" }
 libc = "0.2.147"
+
+[patch."https://github.com/ian-h-chamberlain/test-runner-3ds"]
+test-runner = { path = "." }
+
+# Future-proofing for a rename + org move:
+[patch."https://github.com/rust3ds/test-runner"]
+test-runner = { path = "." }

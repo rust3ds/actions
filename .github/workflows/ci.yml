@@ -60,6 +60,7 @@ jobs:
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
         with:
+          working-directory: test-runner
           args: -- -v
 
       - name: Build and run doc tests
@@ -71,6 +72,7 @@ jobs:
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
         with:
+          working-directory: test-runner
           # TODO(#4): run them suckers
           args: --doc --no-run -- -v
 
