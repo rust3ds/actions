@@ -1,3 +1,5 @@
+use std::process::Termination;
+
 use ctru::error::ResultCode;
 
 use super::TestRunner;
@@ -27,22 +29,10 @@ impl TestRunner for GdbRunner {
         .expect("failed to redirect I/O streams to GDB");
     }
 
-    fn cleanup(self, test_result: std::io::Result<bool>) {
+    fn cleanup<T: Termination>(self, test_result: T) -> T {
         // GDB actually has the opportunity to inspect the exit code,
         // unlike other runners, so let's follow the default behavior of the
         // stdlib test runner.
-        match test_result {
-            Ok(success) => {
-                if success {
-                    std::process::exit(0);
-                } else {
-                    std::process::exit(101);
-                }
-            }
-            Err(err) => {
-                eprintln!("Error: {err}");
-                std::process::exit(101);
-            }
-        }
+        test_result.report().exit_process()
     }
 }

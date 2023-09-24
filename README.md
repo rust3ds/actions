@@ -26,7 +26,7 @@ In `lib.rs` and any integration test files:
 ```
 
 Then use the `setup` and `run-tests` actions in your github workflow. This
-example shows the default value for each of the inputs:
+example shows the default value for each of the inputs.
 
 ```yml
 jobs:
@@ -37,8 +37,6 @@ jobs:
       volumes:
         # This is required so the test action can `docker run` the runner:
         - '/var/run/docker.sock:/var/run/docker.sock'
-        # This is required so doctest artifacts are accessible to the action:
-        - '/tmp:/tmp'
 
     steps:
       - name: Checkout branch
@@ -63,3 +61,6 @@ jobs:
           # https://github.com/actions/runner/issues/2058
           working-directory: ${GITHUB_WORKSPACE}
 ```
+
+See [`ci.yml`](.github/workflows/ci.yml) to see a full lint and test workflow
+using these actions (including uploading output artifacts from the tests).

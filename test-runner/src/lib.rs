@@ -6,18 +6,21 @@
 
 #![feature(test)]
 #![feature(custom_test_frameworks)]
+#![feature(exitcode_exit_method)]
 #![test_runner(run_gdb)]
 
 extern crate test;
 
 mod console;
 mod gdb;
+mod macros;
 mod socket;
 
-use console::ConsoleRunner;
-use gdb::GdbRunner;
-use socket::SocketRunner;
+use std::process::{ExitCode, Termination};
 
+pub use console::ConsoleRunner;
+pub use gdb::GdbRunner;
+pub use socket::SocketRunner;
 use test::{ColorConfig, OutputFormat, TestDescAndFn, TestFn, TestOpts};
 
 /// Show test output in GDB, using the [File I/O Protocol] (called HIO in some 3DS
@@ -25,7 +28,7 @@ use test::{ColorConfig, OutputFormat, TestDescAndFn, TestFn, TestOpts};
 ///
 /// [File I/O Protocol]: https://sourceware.org/gdb/onlinedocs/gdb/File_002dI_002fO-Overview.html#File_002dI_002fO-Overview
 pub fn run_gdb(tests: &[&TestDescAndFn]) {
-    run::<GdbRunner>(tests)
+    run::<GdbRunner>(tests);
 }
 
 /// Run tests using the `ctru` [`Console`] (print results to the 3DS screen).
@@ -33,7 +36,7 @@ pub fn run_gdb(tests: &[&TestDescAndFn]) {
 ///
 /// [`Console`]: ctru::console::Console
 pub fn run_console(tests: &[&TestDescAndFn]) {
-    run::<ConsoleRunner>(tests)
+    run::<ConsoleRunner>(tests);
 }
 
 /// Show test output via a network socket to `3dslink`. This runner is only useful
@@ -43,7 +46,7 @@ pub fn run_console(tests: &[&TestDescAndFn]) {
 ///
 /// [`Soc::redirect_to_3dslink`]: ctru::services::soc::Soc::redirect_to_3dslink
 pub fn run_socket(tests: &[&TestDescAndFn]) {
-    run::<SocketRunner>(tests)
+    run::<SocketRunner>(tests);
 }
 
 fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
@@ -71,7 +74,13 @@ fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
 
     drop(ctx);
 
-    runner.cleanup(result);
+    let reportable_result = match result {
+        Ok(true) => Ok(()),
+        // Try to match stdlib console test runner behavior as best we can
+        _ => Err(ExitCode::from(101)),
+    };
+
+    let _ = runner.cleanup(reportable_result);
 }
 
 /// Adapted from [`test::make_owned_test`].
@@ -92,8 +101,16 @@ fn make_owned_test(test: &TestDescAndFn) -> TestDescAndFn {
     }
 }
 
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for super::ConsoleRunner {}
+    impl Sealed for super::GdbRunner {}
+    impl Sealed for super::SocketRunner {}
+}
+
 /// A helper trait to make the behavior of test runners consistent.
-trait TestRunner: Sized + Default {
+pub trait TestRunner: private::Sealed + Sized + Default {
     /// Any context the test runner needs to remain alive for the duration of
     /// the test. This can be used for things that need to borrow the test runner
     /// itself.
@@ -107,7 +124,11 @@ trait TestRunner: Sized + Default {
 
     /// Handle the results of the test and perform any necessary cleanup.
     /// The [`Context`](Self::Context) will be dropped just before this is called.
-    fn cleanup(self, test_result: std::io::Result<bool>);
+    ///
+    /// This returns `T` so that the result can be used in doctests.
+    fn cleanup<T: Termination>(self, test_result: T) -> T {
+        test_result
+    }
 }
 
 /// This module has stubs needed to link the test library, but they do nothing
@@ -131,17 +152,6 @@ mod link_fix {
         -1
     }
 }
-
-/// Verify that doctests work as expected
-/// ```
-/// assert_eq!(2 + 2, 4);
-/// ```
-///
-/// ```should_panic
-/// assert_eq!(2 + 2, 5);
-/// ```
-#[cfg(doctest)]
-struct Dummy;
 
 #[cfg(test)]
 mod tests {

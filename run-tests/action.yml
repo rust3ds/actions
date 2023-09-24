@@ -1,9 +1,9 @@
 name: Cargo 3DS Test
 description: >
   Run `cargo 3ds test` executables using Citra. Note that to use this action,
-  you must mount `/var/run/docker.sock:/var/run/docker.sock` and `/tmp:/tmp` into
-  the container so that the runner image can be built and doctest artifacts can
-  be found, respectively.
+  you must use a container image of `devkitpro/devkitarm` and mount
+  `/var/run/docker.sock:/var/run/docker.sock` into the container so that the
+  runner image can be built by the action.
 
 inputs:
   args:
@@ -34,6 +34,8 @@ runs:
         tags: ${{ inputs.runner-image }}:latest
         push: false
         load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
     - name: Ensure docker is installed in the container
       shell: bash
@@ -42,20 +44,24 @@ runs:
     - name: Run cargo 3ds test
       shell: bash
       # Set a custom runner for `cargo test` commands to use.
-      # Use ${GITHUB_WORKSPACE} due to
+      # Use ${PWD} and ${RUNNER_TEMP} due to
       # https://github.com/actions/runner/issues/2058, which also means
-      # we have to export this instead of using the env: key
+      # we have to export this in `run` instead of using the `env` key
       run: |
         cd ${{ inputs.working-directory }}
+
+        # Hopefully this still works if the input is an absolute path:
+        mounted_pwd="${{ github.workspace }}/${{ inputs.working-directory }}"
+
         export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
             docker run --rm
-                -v ${{ runner.temp }}:${{ runner.temp }}
-                -v ${{ github.workspace }}/target:/app/target
                 -v ${{ github.workspace }}:${GITHUB_WORKSPACE}
+                -v ${mounted_pwd}/target:/app/target
+                -v ${{ runner.temp }}:${RUNNER_TEMP}
                 ${{ inputs.runner-image }}:latest"
         env
         cargo 3ds -v test ${{ inputs.args }}
       env:
-        # Ensure that doctests get built into a path which is mounted on the host
-        # as well as in this container (via the bind mount in the RUNNER command)
-        TMPDIR: ${{ runner.temp }}
+        # Make sure doctests are built into the shared tempdir instead of the
+        # container's /tmp which will be immediately removed
+        TMPDIR: ${{ env.RUNNER_TEMP }}
