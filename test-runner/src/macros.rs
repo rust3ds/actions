@@ -5,10 +5,11 @@
 // for invalid code though, so we also silence that lint here.
 #[cfg_attr(not(doctest), allow(rustdoc::invalid_rust_codeblocks))]
 /// Helper macro for writing doctests using this runner. Wrap this macro around
-/// your normal doctest to enable running it with the test runners in this crate.
+/// your normal doctest to enable running it with this crate's
+/// [`GdbRunner`](crate::GdbRunner).
 ///
-/// You may optionally specify a runner before the test body, and may use any of
-/// the various [`fn main()`](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#using--in-doc-tests)
+/// You may use any of the various
+/// [`fn main()`](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#using--in-doc-tests)
 /// signatures allowed by documentation tests.
 ///
 /// # Examples
@@ -18,22 +19,17 @@
 #[cfg_attr(not(doctest), doc = "````")]
 /// ```
 /// test_runner::doctest! {
-///     assert_eq!(2 + 2, 4);
-/// }
-/// ```
-#[cfg_attr(not(doctest), doc = "````")]
-///
-/// ## Custom runner
-///
-#[cfg_attr(not(doctest), doc = "````")]
-/// ```no_run
-/// test_runner::doctest! { SocketRunner,
-///     assert_eq!(2 + 2, 4);
+///     let two = 2;
+///     let four = 4;
+///     assert_eq!(two + two, four);
 /// }
 /// ```
 #[cfg_attr(not(doctest), doc = "````")]
 ///
 /// ## `should_panic`
+///
+/// Using `no_run` or `ignore` makes this macro somewhat irrelevant, but
+/// `should_panic` is still supported:
 ///
 #[cfg_attr(not(doctest), doc = "````")]
 /// ```should_panic
@@ -43,23 +39,22 @@
 /// ```
 #[cfg_attr(not(doctest), doc = "````")]
 ///
-/// ## Custom `fn main`
+/// ## Custom `fn main`, crate attribute
 ///
 #[cfg_attr(not(doctest), doc = "````")]
 /// ```
-/// test_runner::doctest! {
-///     fn main() {
-///         assert_eq!(2 + 2, 4);
-///     }
-/// }
-/// ```
-#[cfg_attr(not(doctest), doc = "````")]
+/// #![allow(unused)]
 ///
-#[cfg_attr(not(doctest), doc = "````")]
-/// ```
+/// use std::error::Error;
+///
 /// test_runner::doctest! {
-///     fn main() -> Result<(), Box<dyn std::error::Error>> {
-///         assert_eq!(2 + 2, 4);
+///     // imports can be added outside or inside the macro
+///     use std::ops::Add;
+///
+///     fn main() -> Result<(), Box<dyn Error>> {
+///         let two = 2;
+///         let four = 4;
+///         assert_eq!(Add::add(two, two), four);
 ///         Ok(())
 ///     }
 /// }
@@ -79,23 +74,40 @@
 /// Ok::<(), std::io::Error>(())
 /// ```
 #[cfg_attr(not(doctest), doc = "````")]
+///
+#[cfg_attr(not(doctest), doc = "````")]
+/// ```should_panic
+/// test_runner::doctest! {
+///     assert_eq!(2 + 2, 4);
+///     Err::<(), &str>("uh oh")
+/// }
+/// ```
+#[cfg_attr(not(doctest), doc = "````")]
 #[macro_export]
 macro_rules! doctest {
-    ($runner:ident, fn main() $(-> $ret:ty)? { $($body:tt)* } ) => {
-        fn main() $(-> $ret)? {
-            $crate::doctest!{ $runner, $($body)* }
+    (@_@ $($body:tt)*) => {
+        fn main() -> impl std::process::Termination {
+            #[allow(unused_imports)]
+            use $crate::TestRunner as _;
+
+            let mut _runner = $crate::GdbRunner::default();
+            _runner.setup();
+
+            // Luckily, Rust allows $body to define an inner shadowing main()
+            // and call it, without resulting in infinite recursion.
+            let _result = { $($body)* };
+
+            _runner.cleanup(_result)
         }
     };
-    ($runner:ident, $($body:tt)*) => {
-        use $crate::TestRunner as _;
-        let mut _runner = $crate::$runner::default();
-        _runner.setup();
-        let _result = { $($body)* };
-        _runner.cleanup(_result)
+    ( $($body:tt)* ) => {
+        $crate::doctest! { @_@ $($body)* }
     };
-    ($($body:tt)*) => {
-        $crate::doctest!{ GdbRunner,
-            $($body)*
+    ( $($attrs:meta)* $($items:item)* ) => {
+        $(attrs)*
+        $crate::doctest! { @_@
+            $($items)*
+            main()
         }
     };
 }
