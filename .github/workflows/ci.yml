@@ -9,10 +9,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  # actions-rust-lang/setup-rust-toolchain sets some default RUSTFLAGS, which we don't want to use
-  RUSTFLAGS: ""
-
 jobs:
   lint:
     strategy:
@@ -24,18 +20,19 @@ jobs:
     container: devkitpro/devkitarm
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup
+      - uses: ./setup
         with:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Check formatting
+        working-directory: test-runner
         run: cargo fmt --all --verbose -- --check
 
       - name: Run clippy
-        # We have to build the test crate here since it's not included in build-std by default
-        run: cargo 3ds clippy -Zbuild-std=std,test --color=always --verbose --all-targets
+        working-directory: test-runner
+        run: cargo 3ds clippy --color=always --verbose --all-targets
 
   test:
     strategy:
@@ -47,38 +44,44 @@ jobs:
 
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
     runs-on: ubuntu-latest
-    container: devkitpro/devkitarm
+    container:
+      image: devkitpro/devkitarm
+      volumes:
+        # So the test action can `docker run` the runner:
+        - '/var/run/docker.sock:/var/run/docker.sock'
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup
+      - uses: ./setup
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Build lib tests
-        run: cargo 3ds test --no-run --lib
-
-      - name: Build integration tests
-        run: cargo 3ds test --no-run --test integration
-
-      - name: Build doc tests
-        run: cargo 3ds test --no-run --doc
-
-      - name: Run lib + integration tests
-        uses: ./.github/actions/citra
+      - name: Build and run tests (unit + integration)
+        uses: ./run-tests
         with:
-          executable:  ./target/armv6k-nintendo-3ds/debug/deps/*.elf
+          working-directory: test-runner
+          args: -- -v
 
-      # TODO: run doc tests. We might be able to do something with e.g.
-      # cargo's "runner" configuration, but it seems we also need a test
-      # runtime and stuff for that to work.
+      # TODO(#4): run these suckers
+      # - name: Build and run doc tests
+      #   # Let's still run doc tests even if lib/integration tests fail:
+      #   if: ${{ !cancelled() }}
+      #   env:
+      #     # This ensures the citra logs and video output gets put in a directory
+      #     # where we can upload as artifacts
+      #     RUSTDOCFLAGS: " --persist-doctests ${{ env.GITHUB_WORKSPACE }}/target/armv6k-nintendo-3ds/debug/doctests"
+      #   uses: ./run-tests
+      #   with:
+      #     working-directory: test-runner
+      #     args: --doc -- -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3
-        if: success() || failure()
+        # We always want to upload artifacts regardless of previous success/failure
+        if: ${{ !cancelled() }}
         with:
           name: citra-logs-${{ matrix.toolchain }}
           path: |
-            target/armv6k-nintendo-3ds/debug/deps/*.txt
-            target/armv6k-nintendo-3ds/debug/deps/*.webm
+            target/armv6k-nintendo-3ds/debug/**/*.txt
+            target/armv6k-nintendo-3ds/debug/**/*.webm

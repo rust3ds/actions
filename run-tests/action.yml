@@ -1,0 +1,61 @@
+name: Cargo 3DS Test
+description: >
+  Run `cargo 3ds test` executables using Citra. Note that to use this action,
+  you must mount `/var/run/docker.sock:/var/run/docker.sock` and `/tmp:/tmp` into
+  the container so that the runner image can be built and doctest artifacts can
+  be found, respectively.
+
+inputs:
+  args:
+    description: Extra arguments to pass to `cargo 3ds test`
+    required: false
+    default: ''
+
+  runner-image:
+    description: The name of the container image to build for running tests in
+    required: false
+    default: test-runner-3ds
+
+  working-directory:
+    description: Change to this directory before running tests. Defaults to $GITHUB_WORKSPACE
+    required: false
+    default: ${GITHUB_WORKSPACE}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build test-runner image
+      uses: docker/build-push-action@v4
+      with:
+        context: ${{ github.action_path }}
+        tags: ${{ inputs.runner-image }}:latest
+        push: false
+        load: true
+
+    - name: Ensure docker is installed in the container
+      shell: bash
+      run: apt-get update -y && apt-get install docker.io -y
+
+    - name: Run cargo 3ds test
+      shell: bash
+      # Set a custom runner for `cargo test` commands to use.
+      # Use ${GITHUB_WORKSPACE} due to
+      # https://github.com/actions/runner/issues/2058, which also means
+      # we have to export this instead of using the env: key
+      run: |
+        cd ${{ inputs.working-directory }}
+        export CARGO_TARGET_ARMV6K_NINTENDO_3DS_RUNNER="
+            docker run --rm
+                -v ${{ runner.temp }}:${{ runner.temp }}
+                -v ${{ github.workspace }}/target:/app/target
+                -v ${{ github.workspace }}:${GITHUB_WORKSPACE}
+                ${{ inputs.runner-image }}:latest"
+        env
+        cargo 3ds -v test ${{ inputs.args }}
+      env:
+        # Ensure that doctests get built into a path which is mounted on the host
+        # as well as in this container (via the bind mount in the RUNNER command)
+        TMPDIR: ${{ runner.temp }}
