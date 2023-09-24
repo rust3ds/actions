@@ -1,6 +1,10 @@
 #!/bin/bash
 
-set -x
+# Uncomment for debugging the action itself. Maybe consider a job summary or
+# grouping the output, to keep this stuff visible but make it simpler to use:
+# https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
+
+# set -x
 
 function cleanup_jobs() {
     # shellcheck disable=SC2317 # Unreachable because it's only used in trap
