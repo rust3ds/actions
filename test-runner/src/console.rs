@@ -5,14 +5,18 @@ use ctru::services::gfx::{Flush, Swap};
 
 use super::TestRunner;
 
+/// Run tests using the [`ctru::console::Console`] (print results to the 3DS screen).
+/// This is mostly useful for running tests manually, especially on real hardware.
 pub struct ConsoleRunner {
     gfx: Gfx,
     hid: Hid,
     apt: Apt,
 }
 
-impl Default for ConsoleRunner {
-    fn default() -> Self {
+impl TestRunner for ConsoleRunner {
+    type Context<'this> = Console<'this>;
+
+    fn new() -> Self {
         let gfx = Gfx::new().unwrap();
         let hid = Hid::new().unwrap();
         let apt = Apt::new().unwrap();
@@ -21,10 +25,6 @@ impl Default for ConsoleRunner {
 
         Self { gfx, hid, apt }
     }
-}
-
-impl TestRunner for ConsoleRunner {
-    type Context<'this> = Console<'this>;
 
     fn setup(&mut self) -> Self::Context<'_> {
         Console::new(self.gfx.top_screen.borrow_mut())
