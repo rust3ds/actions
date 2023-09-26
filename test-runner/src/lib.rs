@@ -13,7 +13,6 @@ extern crate test;
 
 mod console;
 mod gdb;
-mod macros;
 mod socket;
 
 use std::process::{ExitCode, Termination};
@@ -23,28 +22,20 @@ pub use gdb::GdbRunner;
 pub use socket::SocketRunner;
 use test::{ColorConfig, OutputFormat, TestDescAndFn, TestFn, TestOpts};
 
-/// Show test output in GDB, using the [File I/O Protocol] (called HIO in some 3DS
-/// homebrew resources). Both stdout and stderr will be printed to the GDB console.
-///
-/// [File I/O Protocol]: https://sourceware.org/gdb/onlinedocs/gdb/File_002dI_002fO-Overview.html#File_002dI_002fO-Overview
+/// Run tests using the [`GdbRunner`].
+/// This function can be used with the `#[test_runner]` attribute.
 pub fn run_gdb(tests: &[&TestDescAndFn]) {
     run::<GdbRunner>(tests);
 }
 
-/// Run tests using the `ctru` [`Console`] (print results to the 3DS screen).
-/// This is mostly useful for running tests manually, especially on real hardware.
-///
-/// [`Console`]: ctru::console::Console
+/// Run tests using the [`ConsoleRunner`].
+/// This function can be used with the `#[test_runner]` attribute.
 pub fn run_console(tests: &[&TestDescAndFn]) {
     run::<ConsoleRunner>(tests);
 }
 
-/// Show test output via a network socket to `3dslink`. This runner is only useful
-/// on real hardware, since `3dslink` doesn't work with emulators.
-///
-/// See [`Soc::redirect_to_3dslink`] for more details.
-///
-/// [`Soc::redirect_to_3dslink`]: ctru::services::soc::Soc::redirect_to_3dslink
+/// Run tests using the [`SocketRunner`].
+/// This function can be used with the `#[test_runner]` attribute.
 pub fn run_socket(tests: &[&TestDescAndFn]) {
     run::<SocketRunner>(tests);
 }
@@ -52,7 +43,7 @@ pub fn run_socket(tests: &[&TestDescAndFn]) {
 fn run<Runner: TestRunner>(tests: &[&TestDescAndFn]) {
     std::env::set_var("RUST_BACKTRACE", "1");
 
-    let mut runner = Runner::default();
+    let mut runner = Runner::new();
     let ctx = runner.setup();
 
     let opts = TestOpts {
@@ -101,16 +92,8 @@ fn make_owned_test(test: &TestDescAndFn) -> TestDescAndFn {
     }
 }
 
-mod private {
-    pub trait Sealed {}
-
-    impl Sealed for super::ConsoleRunner {}
-    impl Sealed for super::GdbRunner {}
-    impl Sealed for super::SocketRunner {}
-}
-
 /// A helper trait to make the behavior of test runners consistent.
-pub trait TestRunner: private::Sealed + Sized + Default {
+trait TestRunner: Sized {
     /// Any context the test runner needs to remain alive for the duration of
     /// the test. This can be used for things that need to borrow the test runner
     /// itself.
@@ -118,6 +101,9 @@ pub trait TestRunner: private::Sealed + Sized + Default {
     type Context<'this>
     where
         Self: 'this;
+
+    /// Initialize the test runner.
+    fn new() -> Self;
 
     /// Create the [`Context`](Self::Context), if any.
     fn setup(&mut self) -> Self::Context<'_>;
