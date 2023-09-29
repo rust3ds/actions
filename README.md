@@ -64,3 +64,28 @@ jobs:
 
 See [`ci.yml`](.github/workflows/ci.yml) to see a full lint and test workflow
 using these actions (including uploading output artifacts from the tests).
+
+## Caveats
+
+* GDB doesn't seem to support separate output streams for `stdout` and `stderr`,
+  so all test output to `stderr` will end up combined with `stdout` and both will be
+  printed to the runner's `stdout`. If you know a workaround for this that doesn't
+  require patching + building GDB itself please open an issue about it!
+
+* Since the custom test runner runs as part of `cargo test`, it won't be able to
+  find a `3dsx` that hasn't built yet. `cargo-3ds` doesn't build `3dsx` executables until
+  _after_ the cargo command it runs internally, so this means that tests can't depend
+  on any features of the `3dsx` (like embedded romFS). A workaround for this is to
+  simply build the tests as a separate step before running them, after which the
+  runner will be able to find the `3dsx`.
+
+* Doctests require a bit of extra setup to work with the runner, since they don't
+  use the crate's `#![test_runner]`. To write doctests, add the following to the
+  beginning of the doctest (or `fn main()` if the test defines it):
+
+  ```rust
+  let _runner = test_runner::GdbRunner::default();
+  ```
+
+  The runner must remain in scope for the duration of the test in order for
+  the test output to be printed.
