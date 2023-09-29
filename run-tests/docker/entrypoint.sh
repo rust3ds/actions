@@ -1,10 +1,12 @@
 #!/bin/bash
 
-# Uncomment for debugging the action itself. Maybe consider a job summary or
-# grouping the output, to keep this stuff visible but make it simpler to use:
+# TODO: Maybe consider a job summary or grouping the output, to keep xtrace output
+# visible but make it simpler to use:
 # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
+# set -o xtrace
 
-# set -x
+set -o nounset
+set -o pipefail
 
 function cleanup_jobs() {
     # shellcheck disable=SC2317 # Unreachable because it's only used in trap
@@ -21,7 +23,8 @@ function cleanup_jobs() {
 trap cleanup_jobs EXIT
 
 EXE_ELF=$1
-EXE_3DSX="$(dirname "$EXE")/$(basename "$EXE" .elf).3dsx"
+EXE_NOEXT="$(dirname "$EXE_ELF")/$(basename "$EXE_ELF" .elf)"
+EXE_3DSX="$EXE_NOEXT.3dsx"
 
 EXE_TO_RUN="$EXE_ELF"
 if [ -f "$EXE_3DSX" ]; then
@@ -29,7 +32,7 @@ if [ -f "$EXE_3DSX" ]; then
     EXE_TO_RUN="$EXE_3DSX"
 fi
 
-VIDEO_OUT="$(dirname "$EXE_ELF")/$(basename "$EXE_ELF" .elf)_capture.webm"
+VIDEO_OUT="${EXE_NOEXT}_capture.webm"
 
 CITRA_LOG_DIR=~/.local/share/citra-emu/log
 CITRA_OUT="$CITRA_LOG_DIR/citra_output.txt"
@@ -54,7 +57,7 @@ cleanup_jobs
 CITRA_LOG="$CITRA_LOG_DIR/citra_log.txt"
 
 for f in "$CITRA_LOG" "$CITRA_OUT"; do
-    OUT="$(dirname "$EXE_ELF")/$(basename "$EXE_ELF" .elf)_$(basename "$f")"
+    OUT="${EXE_NOEXT}_$(basename "$f")"
     if test -f "$f"; then
         cp "$f" "$OUT"
         if [ $STATUS -ne 0 ]; then
