@@ -1,5 +1,4 @@
-# test-runner-3ds
-<!-- TODO: better name! -->
+# test-runner
 
 A set of tools for running automated Rust tests against Citra (3DS emulator).
 
@@ -15,7 +14,7 @@ A set of tools for running automated Rust tests against Citra (3DS emulator).
 First the test runner to your crate:
 
 ```sh
-cargo add --dev test-runner --git https://github.com/ian-h-chamberlain/test-runner-3ds
+cargo add --dev test-runner --git https://github.com/rust3ds/test-runner
 ```
 
 In `lib.rs` and any integration test files:
@@ -43,13 +42,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust3DS toolchain
-        uses: ian-h-chamberlain/test-runner-3ds/setup@v1
+        uses: rust3ds/test-runner/setup@v1
         with:
           # Optionally use a more specific nightly toolchain here if desired
           toolchain: nightly
 
       - name: Build and run tests
-        uses: ian-h-chamberlain/test-runner-3ds/run-tests@v1
+        uses: rust3ds/test-runner/run-tests@v1
         with:
           # Optionally add arguments to pass to `cargo 3ds test`
           args: ''
