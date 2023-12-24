@@ -1,7 +1,7 @@
 use std::process::Termination;
 
 use ctru::prelude::*;
-use ctru::services::gfx::{Flush, Swap};
+use ctru::services::gfx::{Flush, Swap, TopScreen};
 
 use super::TestRunner;
 
@@ -14,7 +14,7 @@ pub struct ConsoleRunner {
 }
 
 impl TestRunner for ConsoleRunner {
-    type Context<'this> = Console<'this>;
+    type Context<'this> = Console<'this, TopScreen>;
 
     fn new() -> Self {
         let gfx = Gfx::new().unwrap();
