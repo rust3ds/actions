@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly-2023-06-01
+          - nightly-2024-02-18
 
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm
@@ -39,7 +39,7 @@ jobs:
       matrix:
         toolchain:
           # Oldest supported nightly
-          - nightly-2023-06-01
+          - nightly-2024-02-18
           - nightly
 
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
