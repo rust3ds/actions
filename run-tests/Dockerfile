@@ -5,7 +5,7 @@ COPY ./docker/download_citra.sh /usr/local/bin/download_citra
 RUN apt-get update -y && apt-get install -y jq
 
 ARG CITRA_CHANNEL=nightly
-ARG CITRA_RELEASE=1995
+ARG CITRA_RELEASE=2098
 RUN download_citra ${CITRA_CHANNEL} ${CITRA_RELEASE}
 
 FROM devkitpro/devkitarm:latest as devkitarm
@@ -17,15 +17,18 @@ RUN cd /opt/devkitpro/examples/3ds/graphics/printing/hello-world && \
     make && \
     mv hello-world.3dsx /tmp/
 
-FROM ubuntu:latest
+FROM ubuntu:mantic
 
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
     apt-get update -y && \
     apt-get install -y \
-        libswscale5 \
+        libavfilter9 \
+        libavformat60 \
+        libavutil58 \
         libsdl2-2.0-0 \
-        libavformat58 \
-        libavfilter7 \
+        libswscale7 \
+        mesa-vulkan-drivers \
+        vulkan-tools \
         xvfb
 
 COPY --from=devkitarm /opt/devkitpro /opt/devkitpro
