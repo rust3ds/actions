@@ -10,30 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    strategy:
-      matrix:
-        toolchain:
-          - nightly-2024-02-18
-
-    runs-on: ubuntu-latest
-    container: devkitpro/devkitarm
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-
-      - uses: ./setup
-        with:
-          toolchain: ${{ matrix.toolchain }}
-
-      - name: Check formatting
-        working-directory: test-runner
-        run: cargo fmt --all --verbose -- --check
-
-      - name: Run clippy
-        working-directory: test-runner
-        run: cargo 3ds clippy --color=always --verbose --all-targets
-
   test:
     strategy:
       matrix:
@@ -41,8 +17,12 @@ jobs:
           # Oldest supported nightly
           - nightly-2024-02-18
           - nightly
+        ctru-rs-ref:
+          # "known good" version of `test-runner` crate
+          - 3247af67d5f9aafb0ea4af485a81b74ce922c8af
+          - master
 
-    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+    continue-on-error: ${{ matrix.toolchain == 'nightly' || matrix.ctru-rs-ref == 'master' }}
     runs-on: ubuntu-latest
     container:
       image: devkitpro/devkitarm
@@ -57,11 +37,17 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - uses: actions/checkout@v4
+        with:
+          repository: 'rust3ds/ctru-rs'
+          path: 'ctru-rs'
+          ref: ${{ matrix.ctru-rs-ref }}
+
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
         with:
-          working-directory: test-runner
-          args: -- -v
+          working-directory: ctru-rs
+          args: --package test-runner -- -v
 
       - name: Build and run doc tests
         # Still run doc tests even if lib/integration tests fail:
@@ -72,8 +58,8 @@ jobs:
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
         with:
-          working-directory: test-runner
-          args: --doc -- -v
+          working-directory: ctru-rs
+          args: --package test-runner --doc -- -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3
