@@ -2,12 +2,9 @@
 
 set -euxo pipefail
 
-CITRA_CHANNEL=$1
-CITRA_RELEASE=$2
+TAG=$1
 
-RELEASE_API="https://api.github.com/repos/citra-emu/citra-${CITRA_CHANNEL}/releases/tags/${CITRA_CHANNEL}-${CITRA_RELEASE}"
-
-curl "${RELEASE_API}" |
+curl "https://api.github.com/repos/PabloMK7/citra/releases/tags/${TAG}" |
     jq --raw-output '.assets[].browser_download_url' |
     grep -E 'citra-linux-.*[.]tar.gz' |
     xargs wget -O citra-linux.tar.gz
