@@ -68,5 +68,5 @@ jobs:
         with:
           name: citra-logs-${{ matrix.toolchain }}
           path: |
-            test-runner/target/armv6k-nintendo-3ds/debug/**/*.txt
-            test-runner/target/armv6k-nintendo-3ds/debug/**/*.webm
+            ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.txt
+            ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.webm
