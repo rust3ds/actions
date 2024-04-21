@@ -59,7 +59,7 @@ jobs:
         uses: ./run-tests
         with:
           working-directory: ctru-rs
-          args: --package test-runner --doc -- -v
+          args: --doc --package test-runner -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3
