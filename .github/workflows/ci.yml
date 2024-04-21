@@ -37,11 +37,26 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - name: Resolve inputs.ref to full SHA
+        # https://github.com/actions/checkout/issues/265#issuecomment-1936792528
+        id: resolve-ref
+        run: |
+          apt-get update -y && apt-get install -y jq
+
+          ref=${{ matrix.ctru-rs-ref }}
+          sha=$(curl -L "https://api.github.com/repos/rust3ds/ctru-rs/commits/$ref" | jq -r .sha)
+          if [ -z "$sha" ]; then
+            echo "Failed to resolve ref $ref (possibly missing GH_TOKEN env var?)" >&2
+            exit 1
+          fi
+
+          echo "sha=$sha" >> $GITHUB_OUTPUT
+
       - uses: actions/checkout@v4
         with:
           repository: 'rust3ds/ctru-rs'
           path: 'ctru-rs'
-          ref: ${{ matrix.ctru-rs-ref }}
+          ref: ${{ steps.resolve-ref.outputs.sha }}
 
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
