@@ -10,30 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    strategy:
-      matrix:
-        toolchain:
-          - nightly-2024-02-18
-
-    runs-on: ubuntu-latest
-    container: devkitpro/devkitarm
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-
-      - uses: ./setup
-        with:
-          toolchain: ${{ matrix.toolchain }}
-
-      - name: Check formatting
-        working-directory: test-runner
-        run: cargo fmt --all --verbose -- --check
-
-      - name: Run clippy
-        working-directory: test-runner
-        run: cargo 3ds clippy --color=always --verbose --all-targets
-
   test:
     strategy:
       matrix:
@@ -41,8 +17,12 @@ jobs:
           # Oldest supported nightly
           - nightly-2024-02-18
           - nightly
+        ctru-rs-ref:
+          # "known good" version of `test-runner` crate
+          - 3247af67d
+          - master
 
-    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+    continue-on-error: ${{ matrix.toolchain == 'nightly' || matrix.ctru-rs-ref == 'master' }}
     runs-on: ubuntu-latest
     container:
       image: devkitpro/devkitarm
@@ -57,11 +37,32 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - name: Resolve inputs.ref to full SHA
+        # https://github.com/actions/checkout/issues/265#issuecomment-1936792528
+        id: resolve-ref
+        run: |
+          apt-get update -y && apt-get install -y jq
+
+          ref=${{ matrix.ctru-rs-ref }}
+          sha=$(curl -L "https://api.github.com/repos/rust3ds/ctru-rs/commits/$ref" | jq -r .sha)
+          if [ -z "$sha" ]; then
+            echo "Failed to resolve ref $ref (possibly missing GH_TOKEN env var?)" >&2
+            exit 1
+          fi
+
+          echo "sha=$sha" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'rust3ds/ctru-rs'
+          path: 'ctru-rs'
+          ref: ${{ steps.resolve-ref.outputs.sha }}
+
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
         with:
-          working-directory: test-runner
-          args: -- -v
+          working-directory: ctru-rs
+          args: --package test-runner -- -v
 
       - name: Build and run doc tests
         # Still run doc tests even if lib/integration tests fail:
@@ -72,15 +73,15 @@ jobs:
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
         with:
-          working-directory: test-runner
-          args: --doc -- -v
+          working-directory: ctru-rs
+          args: --doc --package test-runner -v
 
       - name: Upload citra logs and capture videos
         uses: actions/upload-artifact@v3
         # We always want to upload artifacts regardless of previous success/failure
         if: ${{ !cancelled() }}
         with:
-          name: citra-logs-${{ matrix.toolchain }}
+          name: citra-logs-${{ matrix.toolchain }}-${{ matrix.ctru-rs-ref }}
           path: |
-            test-runner/target/armv6k-nintendo-3ds/debug/**/*.txt
-            test-runner/target/armv6k-nintendo-3ds/debug/**/*.webm
+            ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.txt
+            ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.webm
