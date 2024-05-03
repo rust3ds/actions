@@ -4,9 +4,8 @@ WORKDIR /tmp
 COPY ./docker/download_citra.sh /usr/local/bin/download_citra
 RUN apt-get update -y && apt-get install -y jq
 
-ARG CITRA_CHANNEL=nightly
-ARG CITRA_RELEASE=2098
-RUN download_citra ${CITRA_CHANNEL} ${CITRA_RELEASE}
+ARG TAG=r0c2f076
+RUN download_citra ${TAG}
 
 FROM devkitpro/devkitarm:latest as devkitarm
 
