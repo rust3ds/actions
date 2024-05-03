@@ -1,4 +1,4 @@
-# test-runner
+# actions
 
 A set of Github Actions for working with 3DS applications and the `rust3ds` toolchain.
 
@@ -29,13 +29,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust3DS toolchain
-        uses: rust3ds/test-runner/setup@v1
+        uses: rust3ds/actions/setup@v1
         with:
           # Optionally use a more specific nightly toolchain here if desired
           toolchain: nightly
 
       - name: Build and run tests
-        uses: rust3ds/test-runner/run-tests@v1
+        uses: rust3ds/actions/run-tests@v1
         with:
           # Optionally add arguments to pass to `cargo 3ds test`
           args: ''
