@@ -15,11 +15,11 @@ jobs:
       matrix:
         toolchain:
           # Oldest supported nightly
-          - nightly-2024-02-18
+          - nightly-2024-09-01
           - nightly
         ctru-rs-ref:
           # "known good" version of `test-runner` crate
-          - 3247af67d
+          - 786af2bdb43b2f178afc59f4f9d07c410235556f
           - master
 
     continue-on-error: ${{ matrix.toolchain == 'nightly' || matrix.ctru-rs-ref == 'master' }}
