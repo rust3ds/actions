@@ -8,7 +8,7 @@ when working with these actions, in order to get useful test output on failures.
 ## Components
 
 * `setup`: action for setting up the Rust 3DS toolchain in workflows
-* `run-tests`: action for running test executables with Citra in workflows
+* `run-tests`: action for running test executables with [Azahar](https://github.com/azahar-emu/azahar) in workflows
 
 ## Usage
 

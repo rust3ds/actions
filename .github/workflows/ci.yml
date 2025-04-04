@@ -68,7 +68,7 @@ jobs:
         # Still run doc tests even if lib/integration tests fail:
         if: ${{ !cancelled() }}
         env:
-          # This ensures the citra logs and video output get persisted to a
+          # This ensures the emulator logs and video output get persisted to a
           # directory where the artifact upload can find them.
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
@@ -76,12 +76,12 @@ jobs:
           working-directory: ctru-rs
           args: --doc --package test-runner -v
 
-      - name: Upload citra logs and capture videos
+      - name: Upload emulator logs and capture videos
         uses: actions/upload-artifact@v3
         # We always want to upload artifacts regardless of previous success/failure
         if: ${{ !cancelled() }}
         with:
-          name: citra-logs-${{ matrix.toolchain }}-${{ matrix.ctru-rs-ref }}
+          name: emu-logs-${{ matrix.toolchain }}-${{ matrix.ctru-rs-ref }}
           path: |
             ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.txt
             ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.webm

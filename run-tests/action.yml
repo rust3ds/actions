@@ -1,6 +1,6 @@
 name: Cargo 3DS Test
 description: >
-  Run `cargo 3ds test` executables using Citra. Note that to use this action,
+  Run `cargo 3ds test` executables using an emulator. Note that to use this action,
   you must use a container image of `devkitpro/devkitarm` and mount
   `/var/run/docker.sock:/var/run/docker.sock` into the container so that the
   runner image can be built by the action.
