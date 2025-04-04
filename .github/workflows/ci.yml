@@ -77,7 +77,7 @@ jobs:
           args: --doc --package test-runner -v
 
       - name: Upload emulator logs and capture videos
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         # We always want to upload artifacts regardless of previous success/failure
         if: ${{ !cancelled() }}
         with:
