@@ -33,10 +33,6 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
-      - uses: ./setup
-        with:
-          toolchain: ${{ matrix.toolchain }}
-
       - name: Resolve inputs.ref to full SHA
         # https://github.com/actions/checkout/issues/265#issuecomment-1936792528
         id: resolve-ref
@@ -57,6 +53,10 @@ jobs:
           repository: 'rust3ds/ctru-rs'
           path: 'ctru-rs'
           ref: ${{ steps.resolve-ref.outputs.sha }}
+
+      - uses: ./setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
