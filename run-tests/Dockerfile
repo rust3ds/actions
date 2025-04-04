@@ -1,4 +1,4 @@
-FROM buildpack-deps:latest as builder
+FROM buildpack-deps:latest AS builder
 
 WORKDIR /tmp
 COPY ./docker/download_emulator.sh /usr/local/bin/download_emulator
@@ -7,7 +7,7 @@ RUN apt-get update -y && apt-get install -y jq
 ARG EMU_TAG=2120.2
 RUN download_emulator ${EMU_TAG}
 
-FROM devkitpro/devkitarm:latest as devkitarm
+FROM devkitpro/devkitarm:latest AS devkitarm
 
 # For some reason, the emulator isn't always happy when you try to run it for the first time,
 # so we build a simple dummy program to force it to create its directory structure
@@ -16,18 +16,12 @@ RUN cd /opt/devkitpro/examples/3ds/graphics/printing/hello-world && \
     make && \
     mv hello-world.3dsx /tmp/
 
-FROM ubuntu:mantic
+FROM debian:latest
 
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
     apt-get update -y && \
     apt-get install -y \
-        libavfilter9 \
-        libavformat60 \
-        libavutil58 \
-        libsdl2-2.0-0 \
-        libswscale7 \
-        mesa-vulkan-drivers \
-        vulkan-tools \
+        libncursesw6 \
         xvfb
 
 COPY --from=devkitarm /opt/devkitpro /opt/devkitpro
