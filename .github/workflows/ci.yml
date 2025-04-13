@@ -15,11 +15,11 @@ jobs:
       matrix:
         toolchain:
           # Oldest supported nightly
-          - nightly-2024-02-18
+          - nightly-2024-09-01
           - nightly
         ctru-rs-ref:
           # "known good" version of `test-runner` crate
-          - 3247af67d
+          - 786af2bdb43b2f178afc59f4f9d07c410235556f
           - master
 
     continue-on-error: ${{ matrix.toolchain == 'nightly' || matrix.ctru-rs-ref == 'master' }}
@@ -33,30 +33,15 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
-      - uses: ./setup
-        with:
-          toolchain: ${{ matrix.toolchain }}
-
-      - name: Resolve inputs.ref to full SHA
-        # https://github.com/actions/checkout/issues/265#issuecomment-1936792528
-        id: resolve-ref
-        run: |
-          apt-get update -y && apt-get install -y jq
-
-          ref=${{ matrix.ctru-rs-ref }}
-          sha=$(curl -L "https://api.github.com/repos/rust3ds/ctru-rs/commits/$ref" | jq -r .sha)
-          if [ -z "$sha" ]; then
-            echo "Failed to resolve ref $ref (possibly missing GH_TOKEN env var?)" >&2
-            exit 1
-          fi
-
-          echo "sha=$sha" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
         with:
           repository: 'rust3ds/ctru-rs'
           path: 'ctru-rs'
-          ref: ${{ steps.resolve-ref.outputs.sha }}
+          ref: ${{ matrix.ctru-rs-ref }}
+
+      - uses: ./setup
+        with:
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Build and run tests (unit + integration)
         uses: ./run-tests
@@ -68,7 +53,7 @@ jobs:
         # Still run doc tests even if lib/integration tests fail:
         if: ${{ !cancelled() }}
         env:
-          # This ensures the citra logs and video output get persisted to a
+          # This ensures the emulator logs and video output get persisted to a
           # directory where the artifact upload can find them.
           RUSTDOCFLAGS: " --persist-doctests target/armv6k-nintendo-3ds/debug/doctests"
         uses: ./run-tests
@@ -76,12 +61,12 @@ jobs:
           working-directory: ctru-rs
           args: --doc --package test-runner -v
 
-      - name: Upload citra logs and capture videos
-        uses: actions/upload-artifact@v3
+      - name: Upload emulator logs and capture videos
+        uses: actions/upload-artifact@v4
         # We always want to upload artifacts regardless of previous success/failure
         if: ${{ !cancelled() }}
         with:
-          name: citra-logs-${{ matrix.toolchain }}-${{ matrix.ctru-rs-ref }}
+          name: emu-logs-${{ matrix.toolchain }}-${{ matrix.ctru-rs-ref }}
           path: |
             ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.txt
             ctru-rs/target/armv6k-nintendo-3ds/debug/**/*.webm
