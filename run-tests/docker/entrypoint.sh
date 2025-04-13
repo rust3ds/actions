@@ -39,7 +39,7 @@ EMULATOR_OUT="$EMULATOR_LOG_DIR/emulator_output.txt"
 
 xvfb-run --auto-servernum \
     azahar \
-    --appimage-extract-and-run \
+    --gdbport 4000 \
     --dump-video="$VIDEO_OUT" \
     "$EXE_TO_RUN" \
     &>"$EMULATOR_OUT" &
