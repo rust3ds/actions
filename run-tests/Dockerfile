@@ -26,6 +26,8 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
     libavutil58 \
     libsdl2-2.0-0 \
     libswscale7 \
+    libopengl0 \
+    libegl1 \
     mesa-vulkan-drivers \
     vulkan-tools \
     xvfb
