@@ -34,29 +34,29 @@ fi
 
 VIDEO_OUT="${EXE_NOEXT}_capture.webm"
 
-CITRA_LOG_DIR=~/.local/share/citra-emu/log
-CITRA_OUT="$CITRA_LOG_DIR/citra_output.txt"
+EMU_LOG_DIR=~/.local/share/azahar-emu/log
+EMU_OUT="$EMU_LOG_DIR/azahar_output.txt"
 
 xvfb-run --auto-servernum \
-    citra \
+    azahar \
     --appimage-extract-and-run \
     --dump-video="$VIDEO_OUT" \
     "$EXE_TO_RUN" \
-    &>"$CITRA_OUT" &
-CITRA_PID=$!
+    &>"$EMU_OUT" &
+EMU_PID=$!
 
-# Citra takes a little while to start up, so wait a little before we try to connect
+# Azahar/Citra takes a little while to start up, so wait a little before we try to connect
 sleep 5
 
 arm-none-eabi-gdb --silent --batch-silent --command /app/test-runner.gdb "$EXE_ELF"
 STATUS=$?
 
-kill $CITRA_PID
+kill $EMU_PID
 cleanup_jobs
 
-CITRA_LOG="$CITRA_LOG_DIR/citra_log.txt"
+EMU_LOG="$EMU_LOG_DIR/azahar_log.txt"
 
-for f in "$CITRA_LOG" "$CITRA_OUT"; do
+for f in "$EMU_LOG" "$EMU_OUT"; do
     OUT="${EXE_NOEXT}_$(basename "$f")"
     if test -f "$f"; then
         cp "$f" "$OUT"

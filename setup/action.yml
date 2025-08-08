@@ -31,8 +31,7 @@ runs:
 
     - name: Install cargo-3ds
       shell: bash
-      # TODO: replace with crates.io version once published
-      run: cargo install --locked --git https://github.com/rust3ds/cargo-3ds
+      run: cargo install --locked cargo-3ds
 
     - name: Set PATH to include devkitARM
       shell: bash
